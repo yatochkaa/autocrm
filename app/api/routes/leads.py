@@ -1,83 +1,106 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+"""CRUD и смена статуса заявок."""
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies.auth import get_current_user
 from app.core.database import get_session
-from app.domain.enums import LeadStatus
-from app.domain.funnel import FunnelError
-from app.schemas.legacy_lead import (
-    LegacyLeadCreate,
-    LegacyLeadRead,
-    LegacyLeadStatusUpdate,
-    LegacyLeadUpdate,
-)
-from app.services.lead import LeadService
+from app.db.enums import LeadSource, LeadStatus
+from app.db.models.user import User
+from app.domain.funnel import InvalidTransition
+from app.domain.lead_data import LeadDataError
+from app.schemas.lead import LeadCreate, LeadRead, LeadStatusUpdate, LeadUpdate
+from app.services.lead import LeadNotFoundError, LeadService
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 
 
-def get_service(session: AsyncSession = Depends(get_session)) -> LeadService:
+def get_service(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> LeadService:
     return LeadService(session)
 
 
-@router.post("", response_model=LegacyLeadRead, status_code=status.HTTP_201_CREATED)
+def not_found() -> HTTPException:
+    return HTTPException(status_code=404, detail="Заявка не найдена")
+
+
+@router.post("", response_model=LeadRead, status_code=status.HTTP_201_CREATED)
 async def create_lead(
-    data: LegacyLeadCreate,
-    service: LeadService = Depends(get_service),
-):
-    return await service.create(data)
+    data: LeadCreate,
+    service: Annotated[LeadService, Depends(get_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> LeadRead:
+    try:
+        return await service.create(data, current_user)
+    except LeadDataError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
-@router.get("", response_model=list[LegacyLeadRead])
+@router.get("", response_model=list[LeadRead])
 async def list_leads(
+    service: Annotated[LeadService, Depends(get_service)],
+    _: Annotated[User, Depends(get_current_user)],
     status_filter: LeadStatus | None = Query(default=None, alias="status"),
-    service: LeadService = Depends(get_service),
-):
-    return await service.list(status_filter)
+    source: LeadSource | None = None,
+    manager_id: int | None = None,
+) -> list[LeadRead]:
+    return list(await service.list(status_filter, source, manager_id))
 
 
-@router.get("/{lead_id}", response_model=LegacyLeadRead)
+@router.get("/{lead_id}", response_model=LeadRead)
 async def get_lead(
     lead_id: int,
-    service: LeadService = Depends(get_service),
-):
-    lead = await service.get(lead_id)
-    if lead is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка не найдена")
-    return lead
+    service: Annotated[LeadService, Depends(get_service)],
+    _: Annotated[User, Depends(get_current_user)],
+) -> LeadRead:
+    try:
+        return await service.get(lead_id)
+    except LeadNotFoundError as error:
+        raise not_found() from error
 
 
-@router.patch("/{lead_id}", response_model=LegacyLeadRead)
+@router.patch("/{lead_id}", response_model=LeadRead)
 async def update_lead(
     lead_id: int,
-    data: LegacyLeadUpdate,
-    service: LeadService = Depends(get_service),
-):
-    lead = await service.update(lead_id, data)
-    if lead is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка не найдена")
-    return lead
+    data: LeadUpdate,
+    service: Annotated[LeadService, Depends(get_service)],
+    _: Annotated[User, Depends(get_current_user)],
+) -> LeadRead:
+    try:
+        return await service.update(lead_id, data)
+    except LeadNotFoundError as error:
+        raise not_found() from error
+    except LeadDataError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
-@router.post("/{lead_id}/status", response_model=LegacyLeadRead)
+@router.patch("/{lead_id}/status", response_model=LeadRead)
 async def change_lead_status(
     lead_id: int,
-    data: LegacyLeadStatusUpdate,
-    service: LeadService = Depends(get_service),
-):
+    data: LeadStatusUpdate,
+    service: Annotated[LeadService, Depends(get_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> LeadRead:
     try:
-        lead = await service.change_status(lead_id, data.status)
-    except FunnelError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
-    if lead is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка не найдена")
-    return lead
+        return await service.change_status(lead_id, data.status, current_user)
+    except LeadNotFoundError as error:
+        raise not_found() from error
+    except InvalidTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @router.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_lead(
     lead_id: int,
-    service: LeadService = Depends(get_service),
-) -> None:
-    ok = await service.delete(lead_id)
-    if not ok:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка не найдена")
+    service: Annotated[LeadService, Depends(get_service)],
+    _: Annotated[User, Depends(get_current_user)],
+) -> Response:
+    try:
+        await service.delete(lead_id)
+    except LeadNotFoundError as error:
+        raise not_found() from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
