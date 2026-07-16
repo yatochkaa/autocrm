@@ -1,0 +1,25 @@
+.dash-loading { text-align: center; padding: 48px; color: #888; font-size: 1.1rem; }
+.dashboard { display: flex; flex-direction: column; gap: 24px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+.stat-label { font-size: .82rem; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.stat-value { font-size: 1.6rem; font-weight: 800; }
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.chart-card--wide { grid-column: 1 / -1; }
+.chart-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: #333; }
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
