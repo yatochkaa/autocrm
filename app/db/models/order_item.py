@@ -23,6 +23,9 @@ class OrderItem(Base):
     brand: Mapped[str | None] = mapped_column(String(100))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     price: Mapped[float | None] = mapped_column(Numeric(12, 2, asdecimal=False))
+    purchase_price: Mapped[float | None] = mapped_column(
+        Numeric(12, 2, asdecimal=False)
+    )
     qty: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     is_analog: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
