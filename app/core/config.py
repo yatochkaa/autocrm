@@ -13,18 +13,18 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # App
     app_name: str = "AutoCRM API"
     debug: bool = False
 
-    # Полный DSN можно задать напрямую через переменную DATABASE_URL.
-    # Удобно для локального запуска на SQLite без Postgres/Docker.
+    secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
     database_url_override: str | None = Field(
         default=None,
         validation_alias="DATABASE_URL",
     )
 
-    # PostgreSQL (используется, если DATABASE_URL не задан)
     postgres_user: str = "autocrm"
     postgres_password: str = "autocrm"
     postgres_db: str = "autocrm"
@@ -33,7 +33,6 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        """Async-DSN для SQLAlchemy. DATABASE_URL имеет приоритет."""
         if self.database_url_override:
             return self.database_url_override
         return (
@@ -44,7 +43,6 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Кэшируем настройки, чтобы не читать .env на каждый вызов."""
     return Settings()
 
 

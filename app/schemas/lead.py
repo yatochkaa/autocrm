@@ -1,4 +1,4 @@
-"""Схемы заявки (create / read / update)."""
+"""Схемы заявки (create / read / update / status update)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.enums import LeadSource, LeadStatus
+from app.domain.enums import LeadStatus as FunnelLeadStatus
 from app.schemas.order_item import OrderItemCreate, OrderItemRead
 
 
@@ -19,7 +20,6 @@ class LeadBase(BaseModel):
 
 
 class LeadCreate(LeadBase):
-    # Позиции можно передать сразу при создании заявки.
     items: list[OrderItemCreate] = Field(default_factory=list)
 
 
@@ -31,6 +31,12 @@ class LeadUpdate(BaseModel):
     car_info: str | None = Field(default=None, max_length=255)
     status: LeadStatus | None = None
     manager_id: int | None = None
+
+
+class LeadStatusUpdate(BaseModel):
+    """Совместимость с API воронки из предыдущего этапа."""
+
+    status: FunnelLeadStatus
 
 
 class LeadRead(LeadBase):
