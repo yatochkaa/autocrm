@@ -1,4 +1,5 @@
 """Асинхронный доступ к пользователям в БД."""
+
 from __future__ import annotations
 
 from sqlalchemy import select

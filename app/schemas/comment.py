@@ -1,4 +1,5 @@
 """Схемы комментария (create / read / update)."""
+
 from __future__ import annotations
 
 from datetime import datetime

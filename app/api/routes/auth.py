@@ -1,4 +1,5 @@
 """HTTP-эндпоинты авторизации."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,7 +11,11 @@ from app.core.security import create_access_token
 from app.db.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse, UserRegister
 from app.schemas.user import UserRead
-from app.services.auth import AuthService, EmailAlreadyExistsError, InvalidCredentialsError
+from app.services.auth import (
+    AuthService,
+    EmailAlreadyExistsError,
+    InvalidCredentialsError,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -23,7 +28,9 @@ async def register(
     try:
         return await AuthService(session).register(data.email, data.password)
     except EmailAlreadyExistsError as error:
-        raise HTTPException(status_code=409, detail="Пользователь уже существует") from error
+        raise HTTPException(
+            status_code=409, detail="Пользователь уже существует"
+        ) from error
 
 
 @router.post("/login", response_model=TokenResponse)

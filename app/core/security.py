@@ -1,7 +1,8 @@
 """Хеширование паролей и работа с JWT access-токенами."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from passlib.context import CryptContext
@@ -20,7 +21,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(user_id: int) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user_id),
         "iat": now,
@@ -30,7 +31,9 @@ def create_access_token(user_id: int) -> str:
 
 
 def decode_access_token(token: str) -> int:
-    payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+    payload = jwt.decode(
+        token, settings.secret_key, algorithms=[settings.jwt_algorithm]
+    )
     subject = payload.get("sub")
     if subject is None:
         raise jwt.InvalidTokenError("Token subject is missing")

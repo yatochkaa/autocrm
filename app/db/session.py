@@ -5,6 +5,7 @@
 Строка подключения берётся из настроек проекта или из переменной окружения
 DATABASE_URL.
 """
+
 from __future__ import annotations
 
 import os

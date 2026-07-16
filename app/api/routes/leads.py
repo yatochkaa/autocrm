@@ -1,4 +1,5 @@
 """CRUD и смена статуса заявок."""
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -44,7 +45,10 @@ async def create_lead(
 async def list_leads(
     service: Annotated[LeadService, Depends(get_service)],
     _: Annotated[User, Depends(get_current_user)],
-    status_filter: LeadStatus | None = Query(default=None, alias="status"),
+    status_filter: Annotated[
+        LeadStatus | None,
+        Query(alias="status"),
+    ] = None,
     source: LeadSource | None = None,
     manager_id: int | None = None,
 ) -> list[LeadRead]:

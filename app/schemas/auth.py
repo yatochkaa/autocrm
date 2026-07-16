@@ -1,4 +1,5 @@
 """DTO для регистрации, входа и JWT."""
+
 from pydantic import BaseModel, Field, field_validator
 
 

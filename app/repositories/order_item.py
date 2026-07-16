@@ -1,4 +1,5 @@
 """Запросы к позициям заказа."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -15,7 +16,10 @@ class OrderItemRepository:
         self.session = session
 
     async def lead_exists(self, lead_id: int) -> bool:
-        return await self.session.scalar(select(Lead.id).where(Lead.id == lead_id)) is not None
+        return (
+            await self.session.scalar(select(Lead.id).where(Lead.id == lead_id))
+            is not None
+        )
 
     async def get(self, lead_id: int, item_id: int) -> OrderItem | None:
         statement = select(OrderItem).where(
@@ -26,9 +30,7 @@ class OrderItemRepository:
 
     async def list(self, lead_id: int) -> Sequence[OrderItem]:
         statement = (
-            select(OrderItem)
-            .where(OrderItem.lead_id == lead_id)
-            .order_by(OrderItem.id)
+            select(OrderItem).where(OrderItem.lead_id == lead_id).order_by(OrderItem.id)
         )
         result = await self.session.scalars(statement)
         return result.all()

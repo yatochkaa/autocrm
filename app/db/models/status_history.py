@@ -1,4 +1,5 @@
 """История смены статусов заявки (аудит движения по воронке)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -30,10 +31,8 @@ class StatusHistory(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    lead: Mapped["Lead"] = relationship(back_populates="history")
-    changed_by_user: Mapped["User | None"] = relationship(
-        back_populates="status_changes"
-    )
+    lead: Mapped[Lead] = relationship(back_populates="history")
+    changed_by_user: Mapped[User | None] = relationship(back_populates="status_changes")
 
     def __repr__(self) -> str:  # pragma: no cover
         return (

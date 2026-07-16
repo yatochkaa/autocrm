@@ -1,4 +1,5 @@
 """Модель заявки (Lead) — центральная сущность CRM."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -54,16 +55,16 @@ class Lead(Base):
         nullable=False,
     )
 
-    manager: Mapped["User | None"] = relationship(back_populates="leads")
-    items: Mapped[list["OrderItem"]] = relationship(
+    manager: Mapped[User | None] = relationship(back_populates="leads")
+    items: Mapped[list[OrderItem]] = relationship(
         back_populates="lead", cascade="all, delete-orphan"
     )
-    history: Mapped[list["StatusHistory"]] = relationship(
+    history: Mapped[list[StatusHistory]] = relationship(
         back_populates="lead",
         cascade="all, delete-orphan",
         order_by="StatusHistory.changed_at",
     )
-    comments: Mapped[list["Comment"]] = relationship(
+    comments: Mapped[list[Comment]] = relationship(
         back_populates="lead",
         cascade="all, delete-orphan",
         order_by="Comment.created_at",

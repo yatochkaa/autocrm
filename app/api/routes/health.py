@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +20,7 @@ async def health() -> HealthStatus:
 
 @router.get("/health/db", response_model=ReadinessStatus)
 async def health_db(
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ReadinessStatus:
     """Readiness: проверяем соединение с БД."""
     db_ok = await HealthService(session).check_db()

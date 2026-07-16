@@ -1,4 +1,5 @@
 """API-схемы позиций заказа и расчёта итогов."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
@@ -57,7 +58,7 @@ class OrderItemsSummary(BaseModel):
     total_margin: float | None
 
     @classmethod
-    def build(cls, items: list[OrderItemRead]) -> "OrderItemsSummary":
+    def build(cls, items: list[OrderItemRead]) -> OrderItemsSummary:
         original_items = [item for item in items if not item.is_analog]
         analog_items = [item for item in items if item.is_analog]
         margins = [item.line_margin for item in items if item.line_margin is not None]

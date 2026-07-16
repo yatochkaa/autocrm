@@ -3,6 +3,7 @@
 Импортируем все модели здесь, чтобы Base.metadata знал обо всех таблицах
 (это нужно Alembic для autogenerate и create_all).
 """
+
 from app.db.base import Base
 from app.db.models.comment import Comment
 from app.db.models.lead import Lead

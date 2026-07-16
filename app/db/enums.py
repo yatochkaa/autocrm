@@ -3,6 +3,7 @@
 Значения хранятся в БД как строки (native_enum=False в моделях),
 поэтому переезд между СУБД (SQLite <-> PostgreSQL) не требует правки типов.
 """
+
 from __future__ import annotations
 
 import enum

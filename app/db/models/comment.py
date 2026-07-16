@@ -1,4 +1,5 @@
 """Комментарий менеджера к заявке."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -29,8 +30,8 @@ class Comment(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    lead: Mapped["Lead"] = relationship(back_populates="comments")
-    author: Mapped["User | None"] = relationship(back_populates="comments")
+    lead: Mapped[Lead] = relationship(back_populates="comments")
+    author: Mapped[User | None] = relationship(back_populates="comments")
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Comment id={self.id} lead_id={self.lead_id}>"

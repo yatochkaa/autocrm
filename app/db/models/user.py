@@ -1,4 +1,5 @@
 """Модель пользователя системы (менеджер / администратор)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -39,11 +40,11 @@ class User(Base):
     )
 
     # Заявки, где пользователь — ответственный менеджер.
-    leads: Mapped[list["Lead"]] = relationship(back_populates="manager")
+    leads: Mapped[list[Lead]] = relationship(back_populates="manager")
     # Комментарии, написанные пользователем.
-    comments: Mapped[list["Comment"]] = relationship(back_populates="author")
+    comments: Mapped[list[Comment]] = relationship(back_populates="author")
     # Записи истории смены статусов, сделанные пользователем.
-    status_changes: Mapped[list["StatusHistory"]] = relationship(
+    status_changes: Mapped[list[StatusHistory]] = relationship(
         back_populates="changed_by_user"
     )
 

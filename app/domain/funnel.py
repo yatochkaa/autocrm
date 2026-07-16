@@ -1,4 +1,5 @@
 """Правила переходов по воронке AutoCRM."""
+
 from __future__ import annotations
 
 from app.db.enums import LeadStatus

@@ -1,4 +1,5 @@
 """Запросы к таблицам leads и status_history."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence

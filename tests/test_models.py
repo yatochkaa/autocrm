@@ -1,4 +1,5 @@
 """Тесты моделей этапа 2 (in-memory SQLite, без внешней БД)."""
+
 from __future__ import annotations
 
 import pytest
@@ -30,7 +31,9 @@ def _seed(session) -> Lead:
     )
     lead.items = [
         OrderItem(name="Колодки", oem="1K0698151", brand="Bosch", price=2500, qty=1),
-        OrderItem(name="Аналог", oem="1K0698151", brand="TRW", price=1800, is_analog=True),
+        OrderItem(
+            name="Аналог", oem="1K0698151", brand="TRW", price=1800, is_analog=True
+        ),
     ]
     lead.comments = [Comment(text="Перезвонить", author_id=manager.id)]
     lead.history = [StatusHistory(to_status="new", changed_by=manager.id)]

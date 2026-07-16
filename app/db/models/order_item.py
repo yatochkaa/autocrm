@@ -1,4 +1,5 @@
 """Позиция подбора запчастей внутри заявки."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -29,7 +30,7 @@ class OrderItem(Base):
     qty: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     is_analog: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    lead: Mapped["Lead"] = relationship(back_populates="items")
+    lead: Mapped[Lead] = relationship(back_populates="items")
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<OrderItem id={self.id} name={self.name!r} qty={self.qty}>"

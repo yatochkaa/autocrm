@@ -1,4 +1,5 @@
 """Базовый декларативный класс для всех ORM-моделей."""
+
 from __future__ import annotations
 
 from sqlalchemy import MetaData

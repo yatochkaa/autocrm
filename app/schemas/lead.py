@@ -1,4 +1,5 @@
 """API-схемы заявки."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,7 +50,9 @@ class LeadRead(LeadBase):
     @computed_field
     @property
     def original_total(self) -> float:
-        return round(sum(item.line_total for item in self.items if not item.is_analog), 2)
+        return round(
+            sum(item.line_total for item in self.items if not item.is_analog), 2
+        )
 
     @computed_field
     @property
@@ -64,5 +67,7 @@ class LeadRead(LeadBase):
     @computed_field
     @property
     def total_margin(self) -> float | None:
-        margins = [item.line_margin for item in self.items if item.line_margin is not None]
+        margins = [
+            item.line_margin for item in self.items if item.line_margin is not None
+        ]
         return round(sum(margins), 2) if margins else None

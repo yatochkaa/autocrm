@@ -1,5 +1,6 @@
 """Схемы истории статусов (create / read). Обновление не предусмотрено:
 история только дополняется."""
+
 from __future__ import annotations
 
 from datetime import datetime

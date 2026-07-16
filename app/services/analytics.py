@@ -1,9 +1,10 @@
 """Расчёты аналитики без AI: SQLAlchemy и обычный Python."""
+
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +14,11 @@ from app.repositories.analytics import AnalyticsRepository
 from app.schemas.analytics import (
     AnalyticsDashboardRead,
     AnalyticsPeriodRead,
-    ManagerStatRead,
     ManagersRead,
+    ManagerStatRead,
     OverviewRead,
-    SourceStatRead,
     SourcesRead,
+    SourceStatRead,
     StageTimeRead,
     StageTimesRead,
 )
@@ -44,7 +45,7 @@ class AnalyticsPeriod:
     end_exclusive: datetime
 
     @classmethod
-    def build(cls, date_from: date, date_to: date) -> "AnalyticsPeriod":
+    def build(cls, date_from: date, date_to: date) -> AnalyticsPeriod:
         if date_from > date_to:
             raise InvalidAnalyticsPeriod("date_from не может быть позже date_to")
         local_start = datetime.combine(
@@ -60,8 +61,8 @@ class AnalyticsPeriod:
         return cls(
             date_from=date_from,
             date_to=date_to,
-            start=local_start.astimezone(timezone.utc),
-            end_exclusive=local_end_exclusive.astimezone(timezone.utc),
+            start=local_start.astimezone(UTC),
+            end_exclusive=local_end_exclusive.astimezone(UTC),
         )
 
     def read(self) -> AnalyticsPeriodRead:
@@ -89,9 +90,7 @@ class AnalyticsService:
         )
 
     async def sources(self, period: AnalyticsPeriod) -> SourcesRead:
-        rows = dict(
-            await self.repository.sources(period.start, period.end_exclusive)
-        )
+        rows = dict(await self.repository.sources(period.start, period.end_exclusive))
         total = sum(rows.values())
         items = [
             SourceStatRead(
