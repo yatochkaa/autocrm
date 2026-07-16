@@ -1,0 +1,22 @@
+# PartsPrice Hub — PostgreSQL для локального теста этапа 2.
+# Поднимает только базу; миграцию и проверку запускаем с хоста (из venv).
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: partsprice_db
+    environment:
+      POSTGRES_USER: partsprice
+      POSTGRES_PASSWORD: partsprice
+      POSTGRES_DB: partsprice
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U partsprice -d partsprice"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
