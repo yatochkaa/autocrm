@@ -6,18 +6,17 @@ from app.domain.enums import LeadStatus
 from app.domain.funnel import FunnelError, InvalidTransition, can_transition
 from app.models.lead import Lead
 from app.repositories.lead import LeadRepository
-from app.schemas.lead import LeadCreate, LeadUpdate
+from app.schemas.legacy_lead import LegacyLeadCreate, LegacyLeadUpdate
 
 
 class LeadService:
-    """Бизнес-логика заявок и движения по воронке."""
+    """Бизнес-логика старого API заявок и движения по воронке."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._repo = LeadRepository(session)
 
-    async def create(self, data: LeadCreate) -> Lead:
-        """Создать заявку (стартовый статус NEW из дефолта модели)."""
+    async def create(self, data: LegacyLeadCreate) -> Lead:
         lead = Lead(**data.model_dump())
         await self._repo.add(lead)
         await self._session.commit()
@@ -30,8 +29,11 @@ class LeadService:
     async def list(self, status: LeadStatus | None = None) -> Sequence[Lead]:
         return await self._repo.list_leads(status)
 
-    async def update(self, lead_id: int, data: LeadUpdate) -> Lead | None:
-        """Частично обновить поля заявки (кроме статуса)."""
+    async def update(
+        self,
+        lead_id: int,
+        data: LegacyLeadUpdate,
+    ) -> Lead | None:
         lead = await self._repo.get(lead_id)
         if lead is None:
             return None
@@ -42,7 +44,6 @@ class LeadService:
         return lead
 
     async def change_status(self, lead_id: int, target: LeadStatus) -> Lead | None:
-        """Перевести заявку на следующую стадию с проверкой правил воронки."""
         lead = await self._repo.get(lead_id)
         if lead is None:
             return None
@@ -58,7 +59,6 @@ class LeadService:
         return lead
 
     async def delete(self, lead_id: int) -> bool:
-        """Удалить заявку. True — удалена, False — не найдена."""
         lead = await self._repo.get(lead_id)
         if lead is None:
             return False
