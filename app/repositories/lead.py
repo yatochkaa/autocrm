@@ -24,7 +24,6 @@ class LeadRepository:
             select(Lead)
             .options(*self._with_relations())
             .where(Lead.id == lead_id)
-            # Обновляет уже загруженный Lead и его relations в identity map.
             .execution_options(populate_existing=True)
         )
         return await self.session.scalar(statement)
