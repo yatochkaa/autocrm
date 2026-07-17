@@ -1,7 +1,7 @@
 # Локальная проверка без Docker и PostgreSQL (БД = SQLite).
 # Сознательно БЕЗ asyncpg: он нужен только для Postgres и требует компилятора на Windows.
 # Пины ослаблены (>=), чтобы pip взял готовые wheel под любую версию Python.
-fastapi>=0.111
+fastapi>=0.139.2
 uvicorn[standard]>=0.30
 sqlalchemy[asyncio]>=2.0.31
 alembic>=1.13
