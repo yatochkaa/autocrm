@@ -1,137 +1,126 @@
-import { useState, useEffect } from 'react'
+// src/pages/KanbanPage.tsx  — FULL REPLACEMENT (Phase 2).
+// Использует data.items из PaginatedLeads.
+import React, { useEffect, useState } from 'react'
 import {
-  DndContext, DragOverlay, closestCorners,
-  type DragStartEvent, type DragEndEvent,
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from '@dnd-kit/core'
-import { getLeads, updateLeadStatus } from '../api/leads'
-import { friendlyError } from '../api/client'
+import { getLeads, changeLeadStatus } from '../api/leads'
 import type { Lead, LeadStatus } from '../types'
-import {
-  KANBAN_ACTIVE, KANBAN_COMPLETED, STATUS_LABELS,
-  canTransition,
-} from '../utils/constants'
-import { KanbanColumn } from '../components/KanbanColumn'
-import { KanbanCard } from '../components/KanbanCard'
-import { useToast } from '../hooks/useToast'
-import { ToastContainer } from '../components/Toast'
-import './KanbanPage.css'
+import { KANBAN_COLUMNS, STATUS_LABELS, canTransition } from '../utils/constants'
+import KanbanColumn from '../components/KanbanColumn'
+import KanbanCard from '../components/KanbanCard'
+
+type ColumnsMap = Record<LeadStatus, Lead[]>
 
 export default function KanbanPage() {
-  const { toasts, toast, removeToast } = useToast()
-  const [leads, setLeads]             = useState<Lead[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [showCompleted, setShowCompleted] = useState(false)
-  const [activeId, setActiveId]       = useState<number | null>(null)
+  const [columns, setColumns] = useState<ColumnsMap>(() =>
+    Object.fromEntries(KANBAN_COLUMNS.map(s => [s, [] as Lead[]])) as unknown as ColumnsMap
+  )
+  const [activeId, setActiveId] = useState<number | null>(null)
+  const [overId, setOverId]     = useState<LeadStatus | null>(null)
+  const [loading, setLoading]   = useState(false)
+
+  const sensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: { distance: 4 },
+  }))
 
   useEffect(() => {
-    setLoading(true)
-    getLeads()
-      .then(setLeads)
-      .catch(e => toast.error(friendlyError(e, 'Не удалось загрузить заявки')))
-      .finally(() => setLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const load = async () => {
+      setLoading(true)
+      try {
+        const data = await getLeads({ limit: 200, include_completed: true })
+        const leads: Lead[] = data.items  // PaginatedLeads.items
+        const map = Object.fromEntries(KANBAN_COLUMNS.map(s => [s, [] as Lead[]])) as unknown as ColumnsMap
+        for (const lead of leads) {
+          if (map[lead.status]) map[lead.status].push(lead)
+        }
+        setColumns(map)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [])
 
-  const visibleColumns: LeadStatus[] = showCompleted
-    ? [...KANBAN_ACTIVE, ...KANBAN_COMPLETED]
-    : KANBAN_ACTIVE
-
-  const byStatus = (status: LeadStatus) => leads.filter(l => l.status === status)
-
-  const activeLead = activeId != null ? leads.find(l => l.id === activeId) : null
+  const activeLead = activeId
+    ? Object.values(columns).flat().find(l => l.id === activeId) ?? null
+    : null
 
   const handleDragStart = (e: DragStartEvent) => {
-    setActiveId(Number(e.active.id))
+    setActiveId(e.active.id as number)
+  }
+
+  const handleDragOver = (e: DragOverEvent) => {
+    setOverId((e.over?.id as LeadStatus) ?? null)
   }
 
   const handleDragEnd = async (e: DragEndEvent) => {
-    setActiveId(null)
     const { active, over } = e
+    setActiveId(null)
+    setOverId(null)
     if (!over) return
-
-    const leadId   = Number(active.id)
+    const leadId  = active.id as number
     const toStatus = over.id as LeadStatus
-    const lead     = leads.find(l => l.id === leadId)
+    const lead = Object.values(columns).flat().find(l => l.id === leadId)
     if (!lead || lead.status === toStatus) return
+    if (!canTransition(lead.status, toStatus)) return
 
-    // Проверяем разрешённый переход до отправки запроса
-    if (!canTransition(lead.status, toStatus)) {
-      toast.error(
-        `Нельзя перевести заявку из «${STATUS_LABELS[lead.status]}» в «${STATUS_LABELS[toStatus]}»`
-      )
-      return
-    }
-
-    // Оптимистично обновляем UI
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: toStatus } : l))
+    // Оптимистичное обновление UI
+    setColumns(prev => {
+      const next = { ...prev } as ColumnsMap
+      next[lead.status] = prev[lead.status].filter(l => l.id !== leadId)
+      next[toStatus] = [...prev[toStatus], { ...lead, status: toStatus }]
+      return next
+    })
 
     try {
-      const updated = await updateLeadStatus(leadId, toStatus)
-      setLeads(prev => prev.map(l => l.id === leadId ? updated : l))
-      toast.success(`${lead.name} → «${STATUS_LABELS[toStatus]}»`)
-    } catch (err) {
-      // Откатываем оригинальный статус
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: lead.status } : l))
-      toast.error(friendlyError(err, `Нельзя перевести из «${STATUS_LABELS[lead.status]}» в «${STATUS_LABELS[toStatus]}»`))
+      const rejectionReason = toStatus === 'lost'
+        ? window.prompt('Укажите причину отказа')?.trim()
+        : undefined
+      if (toStatus === 'lost' && !rejectionReason) return
+      await changeLeadStatus(leadId, toStatus, rejectionReason)
+    } catch {
+      // Откатить UI при ошибке
+      setColumns(prev => {
+        const next = { ...prev } as ColumnsMap
+        next[toStatus] = prev[toStatus].filter(l => l.id !== leadId)
+        next[lead.status] = [...prev[lead.status], lead]
+        return next
+      })
     }
   }
 
-  const totalByStatus = (s: LeadStatus) => leads.filter(l => l.status === s).length
+  if (loading) return <div className="loading">Загрузка…</div>
 
   return (
-    <div className="kanban-page">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-
-      <div className="page-header">
-        <h1 className="page-title">Канбан</h1>
-        <label className="completed-toggle">
-          <input
-            type="checkbox"
-            checked={showCompleted}
-            onChange={e => setShowCompleted(e.target.checked)}
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="kanban-board">
+        {KANBAN_COLUMNS.map(status => (
+          <KanbanColumn
+            key={status}
+            status={status}
+            title={STATUS_LABELS[status]}
+            leads={columns[status]}
+            isOver={overId === status}
+            canDrop={activeLead ? canTransition(activeLead.status, status) : null}
           />
-          <span>Показывать завершённые</span>
-          <span className="completed-counts">
-            Продажа: {totalByStatus('won')}, Отказ: {totalByStatus('lost')}
-          </span>
-        </label>
+        ))}
       </div>
-
-      {loading ? (
-        <div className="kanban-loading">
-          {KANBAN_ACTIVE.map(s => (
-            <div key={s} className="kcolumn">
-              <div className="kcolumn-header">
-                <div className="skeleton skeleton-text" style={{ width: '80%', height: 16 }} />
-              </div>
-              <div className="kcolumn-body">
-                {[1,2].map(i => (
-                  <div key={i} className="skeleton skeleton-block" style={{ height: 80 }} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <DndContext
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="kanban-board">
-            {visibleColumns.map(status => (
-              <KanbanColumn
-                key={status}
-                status={status}
-                leads={byStatus(status)}
-              />
-            ))}
-          </div>
-          <DragOverlay>
-            {activeLead && <KanbanCard lead={activeLead} />}
-          </DragOverlay>
-        </DndContext>
-      )}
-    </div>
+      <DragOverlay>
+        {activeLead ? <KanbanCard lead={activeLead} isDragging /> : null}
+      </DragOverlay>
+    </DndContext>
   )
 }

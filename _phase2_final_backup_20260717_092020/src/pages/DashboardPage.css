@@ -1,0 +1,30 @@
+.dash-loading { text-align: center; padding: 48px; color: #888; font-size: 1.1rem; }
+.dashboard { display: flex; flex-direction: column; gap: 24px; }
+.dash-header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.dash-period { color: #888; font-size: .9rem; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.stat-card { display: flex; flex-direction: column; gap: 8px; padding: 20px; }
+.stat-label { font-size: .82rem; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.stat-value { font-size: 1.6rem; font-weight: 800; }
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.chart-card--wide { grid-column: 1 / -1; }
+.chart-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: #333; }
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+/* Топ менеджеров */
+.managers-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.managers-table th {
+  background: #f8f9fb; padding: 10px 14px; text-align: left;
+  font-weight: 600; color: #555; border-bottom: 2px solid #eee;
+}
+.managers-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }

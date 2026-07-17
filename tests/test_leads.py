@@ -123,14 +123,33 @@ async def test_invalid_status_jump_returns_409(
 
 
 @pytest.mark.asyncio
-async def test_delete_lead(
+async def test_delete_lead_requires_admin(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    auth_user: dict[str, object],
     lead_factory,
+    session_factory,
 ) -> None:
+    from app.db.enums import UserRole
+    from app.db.models.user import User
+
     lead = await lead_factory()
-    deleted = await client.delete(f"/leads/{lead['id']}", headers=auth_headers)
+    denied = await client.delete(
+        f"/leads/{lead['id']}", headers=auth_user["headers"]
+    )
+    assert denied.status_code == 403
+
+    async with session_factory() as session:
+        user = await session.get(User, auth_user["id"])
+        assert user is not None
+        user.role = UserRole.ADMIN
+        await session.commit()
+
+    deleted = await client.delete(
+        f"/leads/{lead['id']}", headers=auth_user["headers"]
+    )
     assert deleted.status_code == 204
 
-    loaded = await client.get(f"/leads/{lead['id']}", headers=auth_headers)
+    loaded = await client.get(
+        f"/leads/{lead['id']}", headers=auth_user["headers"]
+    )
     assert loaded.status_code == 404

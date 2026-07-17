@@ -1,21 +1,19 @@
-"""Пакет моделей.
+"""Пакет моделей, зарегистрированных в Base.metadata."""
 
-Импортируем все модели здесь, чтобы Base.metadata знал обо всех таблицах
-(это нужно Alembic для autogenerate и create_all).
-"""
-
-from app.db.base import Base
-from app.db.models.comment import Comment
-from app.db.models.lead import Lead
-from app.db.models.order_item import OrderItem
-from app.db.models.status_history import StatusHistory
-from app.db.models.user import User
+from app.db.base import Base as Base
+from app.db.models.audit_log import AuditLog as AuditLog
+from app.db.models.comment import Comment as Comment
+from app.db.models.lead import Lead as Lead
+from app.db.models.order_item import OrderItem as OrderItem
+from app.db.models.status_history import StatusHistory as StatusHistory
+from app.db.models.user import User as User
 
 __all__ = [
+    "AuditLog",
     "Base",
-    "User",
+    "Comment",
     "Lead",
     "OrderItem",
     "StatusHistory",
-    "Comment",
+    "User",
 ]

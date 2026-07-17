@@ -18,7 +18,11 @@ class LeadRepository:
         self.session = session
 
     def _with_relations(self):
-        return (selectinload(Lead.items), selectinload(Lead.history))
+        return (
+            selectinload(Lead.items),
+            selectinload(Lead.history),
+            selectinload(Lead.audit_logs),
+        )
 
     async def get(self, lead_id: int) -> Lead | None:
         statement = (

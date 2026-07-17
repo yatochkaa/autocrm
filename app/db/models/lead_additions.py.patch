@@ -1,0 +1,28 @@
+# ================================================================
+# PATCH для app/db/models/lead.py  (Phase 2)
+# Не заменяйте весь файл — добавьте указанные строки
+# ================================================================
+#
+# 1. Добавьте импорт LeadPriority в начало файла (enum-block):
+#   from app.db.enums import ..., LeadPriority
+#
+# 2. В классе Lead добавьте после поля status (cохраняйте все существующие поля):
+#
+#   priority: Mapped[str] = mapped_column(
+#       String(20), nullable=False, server_default="normal", index=True
+#   )
+#   rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+#
+# 3. Добавьте relationship к audit_log (после всех остальных relationship):
+#
+#   from app.db.models.audit_log import AuditLog  # в начале файла или lazy-string
+#
+#   audit_logs: Mapped[list["AuditLog"]] = relationship(
+#       "AuditLog", back_populates="lead",
+#       order_by="AuditLog.created_at", cascade="save-update, merge"
+#   )
+#
+# 4. В app/db/models/__init__.py добавьте:
+#   from .audit_log import AuditLog
+#
+# ================================================================

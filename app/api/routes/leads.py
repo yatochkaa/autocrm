@@ -1,95 +1,72 @@
-"""CRUD и смена статуса заявок."""
+"""CRUD, пагинация и смена статуса заявок."""
 
 from __future__ import annotations
 
+import math
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.dependencies.auth import get_current_user
 from app.core.database import get_session
-from app.db.enums import LeadSource, LeadStatus
+from app.db.enums import LeadPriority, LeadSource, LeadStatus, UserRole
+from app.db.models.lead import Lead
 from app.db.models.user import User
 from app.domain.funnel import InvalidTransition
 from app.domain.lead_data import LeadDataError
-from app.schemas.lead import LeadCreate, LeadRead, LeadStatusUpdate, LeadUpdate
+from app.schemas.audit_log import AuditLogOut
+from app.schemas.lead import (
+    LeadCreate,
+    LeadRead,
+    LeadStatusUpdate,
+    LeadUpdate,
+    PaginatedLeads,
+)
+from app.schemas.status_history import StatusHistoryRead
 from app.services.lead import LeadNotFoundError, LeadService
 
-router = APIRouter(prefix="/leads", tags=["Заявки"])
+router = APIRouter(prefix="/leads", tags=["leads"])
 
-CREATE_LEAD_EXAMPLES = {
-    "Создание заявки": {
-        "summary": "Новая заявка с одной позицией",
-        "value": {
-            "name": "Иван Петров",
-            "phone": "+7 900 123-45-67",
-            "source": "site",
-            "vin": "WVWZZZ1KZAW000001",
-            "car_info": "Volkswagen Golf 2019, 1.4 TSI",
-            "manager_id": 1,
-            "items": [
-                {
-                    "name": "Тормозные колодки передние",
-                    "oem": "1K0698151",
-                    "brand": "Bosch",
-                    "price": 4500,
-                    "purchase_price": 3200,
-                    "qty": 1,
-                    "is_analog": False,
-                }
-            ],
-        },
-    }
-}
-
-UPDATE_LEAD_EXAMPLES = {
-    "Обновление заявки": {
-        "summary": "Изменение контактов и менеджера",
-        "value": {
-            "name": "Иван Петров",
-            "phone": "+7 900 765-43-21",
-            "manager_id": 2,
-        },
-    }
-}
-
-STATUS_UPDATE_EXAMPLES = {
-    "Смена статуса": {
-        "summary": "Перевод заявки на следующий этап",
-        "value": {"status": "in_progress"},
-    }
-}
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def get_service(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> LeadService:
+def get_service(session: SessionDep) -> LeadService:
     return LeadService(session)
+
+
+ServiceDep = Annotated[LeadService, Depends(get_service)]
+
+
+def require_admin(current_user: CurrentUser) -> User:
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Только для администратора")
+    return current_user
+
+
+AdminUser = Annotated[User, Depends(require_admin)]
 
 
 def not_found() -> HTTPException:
     return HTTPException(status_code=404, detail="Заявка не найдена")
 
 
-@router.post(
-    "",
-    response_model=LeadRead,
-    status_code=status.HTTP_201_CREATED,
-    summary="Создать заявку",
-    description=(
-        "Создаёт новую заявку. Можно сразу передать список позиций " "в поле `items`."
-    ),
-    responses={
-        201: {"description": "Заявка создана"},
-        401: {"description": "Не авторизован — требуется валидный токен"},
-        422: {"description": "Ошибка валидации данных заявки или позиций"},
-    },
-)
+def ensure_access(lead: Lead, current_user: User) -> None:
+    if (
+        current_user.role == UserRole.MANAGER
+        and lead.manager_id != current_user.id
+    ):
+        raise HTTPException(status_code=403, detail="Нет доступа к заявке")
+
+
+@router.post("", response_model=LeadRead, status_code=status.HTTP_201_CREATED)
 async def create_lead(
-    data: Annotated[LeadCreate, Body(openapi_examples=CREATE_LEAD_EXAMPLES)],
-    service: Annotated[LeadService, Depends(get_service)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    data: LeadCreate,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> LeadRead:
     try:
         return await service.create(data, current_user)
@@ -97,135 +74,193 @@ async def create_lead(
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
-@router.get(
-    "",
-    response_model=list[LeadRead],
-    summary="Список заявок",
-    description=(
-        "Возвращает список заявок с необязательными фильтрами по статусу, "
-        "источнику и ответственному менеджеру."
-    ),
-    responses={
-        200: {"description": "Список заявок"},
-        401: {"description": "Не авторизован — требуется валидный токен"},
-    },
-)
+@router.get("", response_model=list[LeadRead] | PaginatedLeads)
 async def list_leads(
-    service: Annotated[LeadService, Depends(get_service)],
-    _: Annotated[User, Depends(get_current_user)],
-    status_filter: Annotated[
-        LeadStatus | None,
-        Query(alias="status", description="Фильтр по статусу воронки"),
-    ] = None,
-    source: Annotated[
-        LeadSource | None,
-        Query(description="Фильтр по источнику заявки"),
-    ] = None,
-    manager_id: Annotated[
-        int | None,
-        Query(description="Фильтр по ID ответственного менеджера"),
-    ] = None,
-) -> list[LeadRead]:
-    return list(await service.list(status_filter, source, manager_id))
+    session: SessionDep,
+    current_user: CurrentUser,
+    status_filter: Annotated[LeadStatus | None, Query(alias="status")] = None,
+    source: LeadSource | None = None,
+    manager_id: int | None = None,
+    priority: LeadPriority | None = None,
+    search: str | None = None,
+    include_completed: bool | None = None,
+    page: Annotated[int | None, Query(ge=1)] = None,
+    limit: Annotated[int | None, Query(ge=1, le=200)] = None,
+    sort: str | None = None,
+    order: str | None = None,
+) -> list[Lead] | PaginatedLeads:
+    statement = select(Lead).options(
+        selectinload(Lead.items),
+        selectinload(Lead.history),
+    )
+
+    if current_user.role == UserRole.MANAGER:
+        statement = statement.where(Lead.manager_id == current_user.id)
+    elif manager_id is not None:
+        statement = statement.where(Lead.manager_id == manager_id)
+
+    if status_filter is not None:
+        statement = statement.where(Lead.status == status_filter)
+    elif include_completed is False:
+        statement = statement.where(
+            Lead.status.notin_([LeadStatus.WON, LeadStatus.LOST])
+        )
+    if source is not None:
+        statement = statement.where(Lead.source == source)
+    if priority is not None:
+        statement = statement.where(Lead.priority == priority.value)
+    if search:
+        pattern = f"%{search.strip()}%"
+        statement = statement.where(
+            or_(
+                Lead.name.ilike(pattern),
+                Lead.phone.ilike(pattern),
+                Lead.vin.ilike(pattern),
+                Lead.car_info.ilike(pattern),
+            )
+        )
+
+    legacy_response = (
+        page is None
+        and limit is None
+        and priority is None
+        and search is None
+        and include_completed is None
+        and sort is None
+        and order is None
+    )
+    if legacy_response:
+        statement = statement.order_by(Lead.created_at.desc(), Lead.id.desc())
+        rows = (await session.scalars(statement)).all()
+        return list(rows)
+
+    actual_page = page or 1
+    actual_limit = limit or 20
+    total = await session.scalar(
+        select(func.count()).select_from(statement.order_by(None).subquery())
+    )
+
+    allowed_sort = {
+        "created_at": Lead.created_at,
+        "updated_at": Lead.updated_at,
+        "priority": Lead.priority,
+        "status": Lead.status,
+        "name": Lead.name,
+        "total_amount": Lead.total_amount,
+    }
+    sort_column = allowed_sort.get(sort or "created_at", Lead.created_at)
+    statement = statement.order_by(
+        sort_column.asc() if order == "asc" else sort_column.desc(),
+        Lead.id.desc(),
+    )
+    statement = statement.offset((actual_page - 1) * actual_limit).limit(
+        actual_limit
+    )
+    rows = (await session.scalars(statement)).all()
+    total_value = int(total or 0)
+    return PaginatedLeads(
+        items=[LeadRead.model_validate(row) for row in rows],
+        total=total_value,
+        page=actual_page,
+        limit=actual_limit,
+        pages=max(1, math.ceil(total_value / actual_limit)),
+    )
 
 
-@router.get(
-    "/{lead_id}",
-    response_model=LeadRead,
-    summary="Получить заявку",
-    description="Возвращает заявку по ID со всеми позициями и историей.",
-    responses={
-        200: {"description": "Данные заявки"},
-        401: {"description": "Не авторизован — требуется валидный токен"},
-        404: {"description": "Заявка не найдена"},
-    },
-)
+@router.get("/{lead_id}", response_model=LeadRead)
 async def get_lead(
     lead_id: int,
-    service: Annotated[LeadService, Depends(get_service)],
-    _: Annotated[User, Depends(get_current_user)],
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> LeadRead:
     try:
-        return await service.get(lead_id)
+        lead = await service.get(lead_id)
     except LeadNotFoundError as error:
         raise not_found() from error
+    ensure_access(lead, current_user)
+    return lead
 
 
-@router.patch(
-    "/{lead_id}",
-    response_model=LeadRead,
-    summary="Обновить заявку",
-    description="Частично обновляет поля заявки. Передаются только нужные поля.",
-    responses={
-        200: {"description": "Заявка обновлена"},
-        401: {"description": "Не авторизован — требуется валидный токен"},
-        404: {"description": "Заявка не найдена"},
-        422: {"description": "Ошибка валидации данных заявки"},
-    },
-)
+@router.patch("/{lead_id}", response_model=LeadRead)
 async def update_lead(
     lead_id: int,
-    data: Annotated[LeadUpdate, Body(openapi_examples=UPDATE_LEAD_EXAMPLES)],
-    service: Annotated[LeadService, Depends(get_service)],
-    _: Annotated[User, Depends(get_current_user)],
+    data: LeadUpdate,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> LeadRead:
     try:
-        return await service.update(lead_id, data)
+        lead = await service.get(lead_id)
+        ensure_access(lead, current_user)
+        return await service.update(lead_id, data, current_user.id)
     except LeadNotFoundError as error:
         raise not_found() from error
     except LeadDataError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
-@router.patch(
-    "/{lead_id}/status",
-    response_model=LeadRead,
-    summary="Сменить статус заявки",
-    description=(
-        "Меняет статус заявки по воронке продаж.\n\n"
-        "Допустимая цепочка переходов:\n\n"
-        "`new → in_progress → selection → invoice → won/lost`\n\n"
-        "Переход не по цепочке возвращает ошибку 409."
-    ),
-    responses={
-        200: {"description": "Статус изменён"},
-        401: {"description": "Не авторизован — требуется валидный токен"},
-        404: {"description": "Заявка не найдена"},
-        409: {"description": "Недопустимый переход статуса по воронке"},
-    },
-)
+@router.patch("/{lead_id}/status", response_model=LeadRead)
 async def change_lead_status(
     lead_id: int,
-    data: Annotated[LeadStatusUpdate, Body(openapi_examples=STATUS_UPDATE_EXAMPLES)],
-    service: Annotated[LeadService, Depends(get_service)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    data: LeadStatusUpdate,
+    service: ServiceDep,
+    current_user: CurrentUser,
 ) -> LeadRead:
     try:
-        return await service.change_status(lead_id, data.status, current_user)
+        lead = await service.get(lead_id)
+        ensure_access(lead, current_user)
+        return await service.change_status(
+            lead_id,
+            data.status,
+            current_user,
+            data.rejection_reason,
+        )
     except LeadNotFoundError as error:
         raise not_found() from error
     except InvalidTransition as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    except LeadDataError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.delete(
     "/{lead_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Удалить заявку",
-    description="Удаляет заявку вместе со связанными позициями заказа.",
-    responses={
-        204: {"description": "Заявка удалена, тело ответа отсутствует"},
-        401: {"description": "Не авторизован — требуется валидный токен"},
-        404: {"description": "Заявка не найдена"},
-    },
+    response_class=Response,
 )
 async def delete_lead(
     lead_id: int,
-    service: Annotated[LeadService, Depends(get_service)],
-    _: Annotated[User, Depends(get_current_user)],
+    service: ServiceDep,
+    _admin: AdminUser,
 ) -> Response:
     try:
         await service.delete(lead_id)
     except LeadNotFoundError as error:
         raise not_found() from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{lead_id}/history", response_model=list[StatusHistoryRead])
+async def get_history(
+    lead_id: int,
+    service: ServiceDep,
+    current_user: CurrentUser,
+) -> list[StatusHistoryRead]:
+    try:
+        lead = await service.get(lead_id)
+    except LeadNotFoundError as error:
+        raise not_found() from error
+    ensure_access(lead, current_user)
+    return lead.history
+
+
+@router.get("/{lead_id}/audit", response_model=list[AuditLogOut])
+async def get_audit(
+    lead_id: int,
+    service: ServiceDep,
+    _admin: AdminUser,
+) -> list[AuditLogOut]:
+    try:
+        lead = await service.get(lead_id)
+    except LeadNotFoundError as error:
+        raise not_found() from error
+    return lead.audit_logs
