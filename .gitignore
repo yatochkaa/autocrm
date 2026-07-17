@@ -49,3 +49,5 @@ _portfolio_cleanup_backup_*/
 /uvicorn
 frontend/node_modules/ 
 node_modules/ 
+node_modules/
+frontend/node_modules/
