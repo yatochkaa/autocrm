@@ -6,41 +6,158 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class OrderItemBase(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    oem: str | None = Field(default=None, max_length=100)
-    brand: str | None = Field(default=None, max_length=100)
-    price: float | None = Field(default=None, ge=0)
-    purchase_price: float | None = Field(default=None, ge=0)
-    qty: int = Field(default=1, ge=1)
-    is_analog: bool = False
+    name: str = Field(
+        min_length=1,
+        max_length=255,
+        title="Название детали",
+        description="Наименование детали или позиции.",
+        examples=["Тормозные колодки передние"],
+    )
+    oem: str | None = Field(
+        default=None,
+        max_length=100,
+        title="OEM / артикул",
+        description="OEM-номер производителя или артикул детали.",
+        examples=["1K0698151"],
+    )
+    brand: str | None = Field(
+        default=None,
+        max_length=100,
+        title="Бренд",
+        description="Производитель детали.",
+        examples=["Bosch"],
+    )
+    price: float | None = Field(
+        default=None,
+        ge=0,
+        title="Цена продажи за единицу, ₽",
+        description="Цена продажи одной единицы, в рублях.",
+        examples=[4500],
+    )
+    purchase_price: float | None = Field(
+        default=None,
+        ge=0,
+        title="Закупочная цена за единицу, ₽",
+        description="Закупочная цена одной единицы, в рублях.",
+        examples=[3200],
+    )
+    qty: int = Field(
+        default=1,
+        ge=1,
+        title="Количество, шт.",
+        description="Количество единиц позиции.",
+        examples=[1],
+    )
+    is_analog: bool = Field(
+        default=False,
+        title="Аналог",
+        description="false — оригинальная деталь, true — аналог.",
+        examples=[False],
+    )
 
 
 class OrderItemCreate(OrderItemBase):
-    pass
+    """Данные для добавления позиции в заявку."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Тормозной диск передний",
+                    "oem": "1K0615301AA",
+                    "brand": "ATE",
+                    "price": 5200,
+                    "purchase_price": 3800,
+                    "qty": 2,
+                    "is_analog": False,
+                },
+                {
+                    "name": "Тормозной диск передний (аналог)",
+                    "oem": "DF4451",
+                    "brand": "TRW",
+                    "price": 3900,
+                    "purchase_price": 2600,
+                    "qty": 2,
+                    "is_analog": True,
+                },
+            ]
+        }
+    )
 
 
 class OrderItemUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    oem: str | None = Field(default=None, max_length=100)
-    brand: str | None = Field(default=None, max_length=100)
-    price: float | None = Field(default=None, ge=0)
-    purchase_price: float | None = Field(default=None, ge=0)
-    qty: int | None = Field(default=None, ge=1)
-    is_analog: bool | None = None
+    """Частичное обновление позиции заказа."""
+
+    model_config = ConfigDict(
+        json_schema_extra={"examples": [{"price": 4100, "qty": 3}]}
+    )
+
+    name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255,
+        title="Название детали",
+        examples=["Тормозные колодки передние"],
+    )
+    oem: str | None = Field(
+        default=None,
+        max_length=100,
+        title="OEM / артикул",
+        examples=["1K0698151"],
+    )
+    brand: str | None = Field(
+        default=None,
+        max_length=100,
+        title="Бренд",
+        examples=["Bosch"],
+    )
+    price: float | None = Field(
+        default=None,
+        ge=0,
+        title="Цена продажи за единицу, ₽",
+        examples=[4100],
+    )
+    purchase_price: float | None = Field(
+        default=None,
+        ge=0,
+        title="Закупочная цена за единицу, ₽",
+        examples=[3200],
+    )
+    qty: int | None = Field(
+        default=None,
+        ge=1,
+        title="Количество, шт.",
+        examples=[3],
+    )
+    is_analog: bool | None = Field(
+        default=None,
+        title="Аналог",
+        description="false — оригинал, true — аналог.",
+        examples=[False],
+    )
 
 
 class OrderItemRead(OrderItemBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    lead_id: int
+    id: int = Field(title="ID позиции", examples=[1])
+    lead_id: int = Field(title="ID заявки", examples=[1])
 
-    @computed_field
+    @computed_field(
+        title="Сумма позиции, ₽",
+        description="Расчёт: line_total = price × qty (цена за единицу × кол-во).",
+    )
     @property
     def line_total(self) -> float:
         return round((self.price or 0) * self.qty, 2)
 
-    @computed_field
+    @computed_field(
+        title="Маржа позиции, ₽",
+        description=(
+            "Расчёт: line_margin = (price − purchase_price) × qty. "
+            "null, если не заданы цена или закупочная цена."
+        ),
+    )
     @property
     def line_margin(self) -> float | None:
         if self.price is None or self.purchase_price is None:

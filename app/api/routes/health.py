@@ -9,16 +9,28 @@ from app.core.database import get_session
 from app.schemas.health import HealthStatus, ReadinessStatus
 from app.services.health import HealthService
 
-router = APIRouter(tags=["health"])
+router = APIRouter(tags=["Система"])
 
 
-@router.get("/health", response_model=HealthStatus)
+@router.get(
+    "/health",
+    response_model=HealthStatus,
+    summary="Проверка живости",
+    description="Liveness-проба: приложение живо, внешние зависимости не проверяются.",
+    responses={200: {"description": "Сервис работает"}},
+)
 async def health() -> HealthStatus:
     """Liveness: приложение живо, внешние зависимости не трогаем."""
     return HealthStatus(app=settings.app_name, version=__version__)
 
 
-@router.get("/health/db", response_model=ReadinessStatus)
+@router.get(
+    "/health/db",
+    response_model=ReadinessStatus,
+    summary="Проверка БД",
+    description="Readiness-проба: проверяет доступность базы данных.",
+    responses={200: {"description": "Статус соединения с базой данных"}},
+)
 async def health_db(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ReadinessStatus:

@@ -1,0 +1,43 @@
+.kboard-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: grab;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: box-shadow var(--transition), border-color var(--transition);
+  user-select: none;
+}
+.kboard-card:hover { box-shadow: var(--shadow-md); border-color: var(--color-primary); }
+.kboard-card:active { cursor: grabbing; }
+
+.kcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.kcard-id {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  font-family: monospace;
+}
+.kcard-source { font-size: .9rem; }
+.kcard-name  { font-size: .9rem; font-weight: 700; color: var(--color-text); line-height: 1.3; }
+.kcard-car   { font-size: .78rem; color: var(--color-muted); }
+.kcard-phone { font-size: .78rem; }
+.kcard-amount {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-top: 4px;
+}
+.kcard-margin { font-size: .78rem; font-weight: 600; margin-top: -2px; }
+.kcard-date {
+  font-size: .72rem;
+  margin-top: 4px;
+}

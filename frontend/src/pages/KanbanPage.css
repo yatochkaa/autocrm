@@ -1,0 +1,33 @@
+.kanban-page { display: flex; flex-direction: column; gap: 18px; }
+
+.completed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: .875rem;
+  color: var(--color-muted);
+  user-select: none;
+}
+.completed-toggle input { cursor: pointer; accent-color: var(--color-primary); }
+.completed-toggle:hover { color: var(--color-text); }
+.completed-counts {
+  font-size: .78rem;
+  color: var(--color-muted);
+  margin-left: 4px;
+  opacity: .7;
+}
+
+.kanban-board {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  min-height: 600px;
+  align-items: flex-start;
+}
+
+.kanban-loading {
+  display: flex;
+  gap: 16px;
+}
