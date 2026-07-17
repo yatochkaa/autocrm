@@ -44,3 +44,9 @@ export function startOfQuarter(date = new Date()): Date {
   const q = Math.floor(date.getMonth() / 3)
   return new Date(date.getFullYear(), q * 3, 1)
 }
+
+/** Понятная подпись ответственного менеджера (не «голый» id). */
+export function formatManager(id: number | null | undefined): string {
+  if (id == null) return '—'
+  return `Менеджер #${id}`
+}

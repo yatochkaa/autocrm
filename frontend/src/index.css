@@ -43,7 +43,7 @@
 /* ========= RESET / BASE ========= */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 15px; }
+html { font-size: 16px; } /* HOTFIX: основной текст ≥14px (0.875rem = 14px) */
 
 body {
   font-family: var(--font-sans);
@@ -280,3 +280,17 @@ a { color: var(--color-primary); text-decoration: none; }
   body { background: #fff; color: #000; }
   .card { box-shadow: none; border: 1px solid #ddd; }
 }
+
+/* ==================== PHASE 2 HOTFIX ADDITIONS (только добавления) ==================== */
+/* Animated toggle («Показывать завершённые») */
+.switch { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .switch-track { width: 36px; height: 20px; border-radius: 999px; background: var(--color-border); transition: background var(--transition); flex: none; position: relative; }
+.switch .switch-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--transition); }
+.switch input:checked + .switch-track { background: var(--color-primary); }
+.switch input:checked + .switch-track::after { transform: translateX(16px); }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.switch-label-text { font-size: .875rem; color: var(--color-text); white-space: nowrap; }
+
+/* Цветной чип приоритета */
+.priority-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; color: #fff; font-size: .75rem; font-weight: 600; white-space: nowrap; }
