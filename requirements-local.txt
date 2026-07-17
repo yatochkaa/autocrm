@@ -2,7 +2,7 @@
 # Сознательно БЕЗ asyncpg: он нужен только для Postgres и требует компилятора на Windows.
 # Пины ослаблены (>=), чтобы pip взял готовые wheel под любую версию Python.
 fastapi>=0.111
-uvicorn[standard]>=0.30
+uvicorn[standard]>=0.51.0
 sqlalchemy[asyncio]>=2.0.31
 alembic>=1.13
 pydantic>=2.9
