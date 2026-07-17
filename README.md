@@ -4,283 +4,123 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![pytest](https://img.shields.io/badge/tested_with-pytest-0A9EDC?logo=pytest&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 
-AutoCRM — веб-приложение для управления заявками магазина автозапчастей: от первого обращения клиента до продажи. Система объединяет реестр заявок, канбан-воронку, подбор запчастей, аналитику и разграничение доступа для сотрудников.
-
-Заявки поступают из Telegram, с сайта или создаются менеджером вручную. Для каждой заявки можно подобрать оригинальные запчасти и аналоги, рассчитать сумму заказа и маржу, назначить ответственного менеджера и отследить историю изменений.
+AutoCRM ведёт заявки магазина автозапчастей от первого обращения до продажи. В системе есть реестр заявок, Kanban-воронка, подбор позиций, роли сотрудников, аудит, аналитика и настоящий экспорт XLSX.
 
 **Воронка:** `Новая → В работе → Подбор → Счёт → Продажа / Отказ`
 
----
+> Публичная демо-версия пока не опубликована. Инструкция по развёртыванию находится в [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## 📸 Интерфейс
 
-### Воронка продаж
+| Kanban | Заявки |
+|---|---|
+| ![Kanban](docs/screenshots/kanban-board.png) | ![Заявки](docs/screenshots/requests-list.png) |
 
-![Канбан-воронка AutoCRM](docs/screenshots/kanban-board.png)
+| Dashboard | Настройки |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard-overview.png) | ![Настройки](docs/screenshots/settings-page.png) |
 
-### Список заявок
-
-![Список заявок AutoCRM](docs/screenshots/requests-list.png)
-
-### Аналитика
-
-![Дашборд AutoCRM](docs/screenshots/dashboard-overview.png)
-
-### Перемещение заявки между этапами
-
-![Работа с канбаном AutoCRM](docs/screenshots/kanban-workflow.gif)
-
----
+![Kanban workflow](docs/screenshots/kanban-workflow.gif)
 
 ## ✨ Возможности
 
-- 📋 Реестр заявок с поиском, фильтрами, приоритетами и назначением менеджера
-- 🧭 Kanban-воронка с drag-and-drop (`@dnd-kit`) и историей смены статусов
-- 🔧 Подбор позиций: OEM-номера, бренды, оригиналы и аналоги, цена и закупка
-- 💰 Автоматический расчёт суммы и маржи по каждой позиции и всей заявке
-- 📊 Аналитика продаж, источников, менеджеров и конверсии по этапам (`Recharts`)
-- 🔐 JWT-авторизация и разграничение доступа для администратора и менеджера
-- 📝 Комментарии к заявкам и полный журнал действий
-- 📥 Экспорт данных в Excel
-- 🌗 Светлая и тёмная темы интерфейса
-- 🧪 CI: `ruff`, проверка миграций и `pytest` при каждом push
+- реестр заявок с поиском, фильтрами, приоритетами и сохранением состояния;
+- Kanban drag-and-drop с правилами воронки и историей статусов;
+- позиции заказа, OEM, оригиналы/аналоги, сумма и маржа;
+- роли директора и менеджеров, управление учётными записями;
+- комментарии и audit log;
+- аналитика продаж, источников, менеджеров и времени этапов;
+- экспорт заявок и отчётов в настоящий `.xlsx`;
+- светлая/тёмная темы и печатный A4-отчёт;
+- Docker Compose и CI для backend/frontend.
 
 ## 🛠 Стек
 
 | Слой | Технологии |
 |---|---|
-| Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 (async), Alembic, Pydantic v2 |
-| БД | PostgreSQL 16 (asyncpg / psycopg3) |
-| Auth | JWT (PyJWT), passlib + bcrypt |
-| Frontend | React 18, TypeScript, Vite, React Router, Recharts, @dnd-kit |
-| Инфраструктура | Docker, docker-compose (db + api + frontend), GitHub Actions |
-| Тесты | pytest (async), ruff |
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 async, Alembic, Pydantic v2 |
+| БД | PostgreSQL 16, asyncpg, psycopg3 |
+| Auth | JWT, passlib, bcrypt |
+| Frontend | React 18, TypeScript, Vite, React Router, Recharts, dnd-kit |
+| Тесты | pytest-asyncio, SQLite in-memory локально, PostgreSQL в CI |
 
----
-
-## 🚀 Quickstart
-
-Нужны только Docker и docker compose:
+## 🚀 Быстрый запуск
 
 ```bash
 git clone https://github.com/yatochkaa/autocrm.git
 cd autocrm
 cp .env.example .env
-
+# обязательно замените SECRET_KEY и SEED_*_PASSWORD
 docker compose up --build
 ```
 
 После запуска:
 
-| Сервис | URL |
-|---|---|
-| Frontend | http://localhost:5173 |
-| API | http://localhost:8000 |
-| Swagger UI | http://localhost:8000/docs |
+- Frontend: http://localhost:5173
+- API: http://localhost:8000
+- Swagger: http://localhost:8000/docs
 
-Наполнить базу демо-данными:
+Демо-данные:
 
 ```bash
-# пользователи (admin + manager) и несколько демо-заявок
 docker compose exec api python -m app.seed
-
-# ~60 реалистичных заявок с историей статусов для дашборда
 docker compose exec api python -m scripts.seed_portfolio --count 60
 ```
 
-Логин: `manager@autocrm.local` / `manager123` (переопределяется через `SEED_*` в `.env`).
+Логины и пароли задаются только через переменные `SEED_*` в локальном `.env` и не публикуются в репозитории.
 
-Тесты (локально, нужен запущенный PostgreSQL — см. `.github/workflows/ci.yml`):
+## 🧪 Проверки
 
 ```bash
 pip install -r requirements-dev.txt
+ruff check app tests scripts
 pytest -q
+cd frontend
+npm ci
+npm run build
 ```
 
----
+Локальные backend-тесты по умолчанию используют SQLite in-memory. PostgreSQL используется в CI и интеграционном окружении.
 
-## 🏗 Architecture
+## 🏗 Архитектура
 
-Слоистая архитектура — каждый слой знает только о слое ниже:
-
-```mermaid
-flowchart TD
-    subgraph Clients
-        UI[React SPA]
-        EXT[Заявки: Telegram / сайт / вручную]
-    end
-
-    subgraph Backend[FastAPI Backend — пакет app/]
-        API[api — роутеры: auth, leads, order_items, analytics, comments]
-        SCH[schemas — Pydantic-модели входа/выхода]
-        SRV[services — бизнес-логика: воронка, маржа, аналитика]
-        DOM[domain — сущности и правила предметной области]
-        REPO[repositories — доступ к данным]
-        MOD[db — Base, enums, ORM-модели SQLAlchemy]
-        CORE[core — config, database, security/JWT]
-    end
-
-    DB[(PostgreSQL)]
-
-    UI --> API
-    EXT --> API
-    API --> SCH
-    API --> SRV
-    SRV --> DOM
-    SRV --> REPO
-    REPO --> MOD
-    MOD --> DB
-    CORE -.-> API
-    CORE -.-> REPO
+```text
+app/
+├── api/            # FastAPI routes и зависимости
+├── core/           # config, database, JWT, runtime settings, user profiles
+├── db/             # SQLAlchemy ORM и enums
+├── domain/         # правила воронки и предметной области
+├── repositories/   # доступ к данным
+├── schemas/        # Pydantic-схемы
+├── services/       # бизнес-логика, аналитика, XLSX
+└── main.py         # фабрика приложения
+frontend/           # React + TypeScript + Vite
+scripts/            # безопасные служебные и seed-скрипты
+tests/              # pytest
+alembic/            # миграции
 ```
 
-### Структура проекта
+Runtime-файлы `autocrm_user_profiles.json` и `autocrm_settings.json` создаются приложением локально и не хранятся в Git.
 
-```
-autocrm/
-├── app/
-│   ├── api/            # роутеры FastAPI + зависимости
-│   ├── core/           # конфиг, подключение к БД, JWT/security
-│   ├── db/             # Base, enums, ORM-модели
-│   ├── domain/         # доменные сущности и правила
-│   ├── repositories/   # доступ к данным
-│   ├── schemas/        # Pydantic-схемы
-│   ├── services/       # бизнес-логика
-│   ├── main.py         # фабрика приложения
-│   └── seed.py         # сид: пользователи + демо-заявки
-├── alembic/            # миграции БД
-├── frontend/           # React + TypeScript + Vite
-├── scripts/            # seed_portfolio.py и утилиты
-├── tests/              # pytest
-├── docs/               # документация и скриншоты
-├── docker-compose.yml  # db + api + frontend
-└── Dockerfile          # образ API
-```
+## 🌐 Деплой
 
-### Схема БД
-
-```mermaid
-erDiagram
-    USERS ||--o{ LEADS : "manages"
-    LEADS ||--o{ ORDER_ITEMS : "contains"
-    LEADS ||--o{ STATUS_HISTORY : "logs"
-    LEADS ||--o{ AUDIT_LOGS : "tracks"
-    LEADS ||--o{ COMMENTS : "has"
-
-    USERS {
-        int id PK
-        string email UK
-        string password_hash
-        string role "admin | manager"
-    }
-
-    LEADS {
-        int id PK
-        string name "имя клиента"
-        string phone
-        string source "telegram | site | manual"
-        string vin
-        string car_info
-        string status "new | in_progress | selection | invoice | won | lost"
-        int manager_id FK
-        string priority "low | normal | high | urgent"
-        string rejection_reason "nullable"
-        float total_amount "сумма продажи"
-        float total_margin "маржа"
-        datetime created_at
-        datetime updated_at
-    }
-
-    ORDER_ITEMS {
-        int id PK
-        int lead_id FK
-        string oem "OEM-номер"
-        string brand
-        string name
-        float price "цена продажи"
-        float purchase_price "закупка"
-        int qty
-        bool is_analog
-    }
-
-    STATUS_HISTORY {
-        int id PK
-        int lead_id FK
-        string from_status
-        string to_status
-        int changed_by FK
-        datetime changed_at
-    }
-
-    AUDIT_LOGS {
-        int id PK
-        int lead_id FK
-        int actor_id FK
-        string action
-        string field
-        string old_value
-        string new_value
-        datetime created_at
-    }
-
-    COMMENTS {
-        int id PK
-        int lead_id FK
-        int author_id FK
-        string text
-        datetime created_at
-    }
-```
-
-### Путь заявки (sequence)
-
-```mermaid
-sequenceDiagram
-    actor C as Клиент
-    participant SRC as Источник (Telegram / сайт / менеджер)
-    participant A as FastAPI (api)
-    participant S as LeadService (services)
-    participant R as LeadRepository (repositories)
-    participant DB as PostgreSQL
-    participant F as React SPA
-
-    C->>SRC: "Нужны колодки на Camry 2019"
-    SRC->>A: POST /leads (source, phone, vin, car_info)
-    A->>A: JWT + валидация (schemas)
-    A->>S: create_lead(dto)
-    S->>R: add(lead)
-    R->>DB: INSERT leads + status_history + audit_log
-    DB-->>A: 201 Created
-
-    F->>A: GET /leads?status=new
-    A-->>F: заявка на kanban-доске
-    Note over F: Менеджер двигает заявку по воронке,<br/>добавляет позиции — сумма и маржа считаются автоматически
-
-    F->>A: GET /analytics/*
-    A-->>F: дашборд: продажи, источники, конверсия
-```
-
----
-
+Пошаговая инструкция: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## 🗺 Roadmap
 
-- [x] Воронка заявок с kanban и историей статусов
-- [x] Позиции подбора (оригинал/аналог) с расчётом суммы и маржи
-- [x] JWT-авторизация, роли admin/manager
-- [x] Аналитика и дашборд
-- [x] Комментарии и audit log
-- [x] CI (ruff + миграции + pytest)
-- [ ] Telegram-бот для автоматического приёма заявок
-- [x] Экспорт отчётов в Excel
-- [ ] Интеграция с поставщиками (проценка по API)
-- [ ] Уведомления менеджеру о новых заявках
+- [x] Kanban и история статусов
+- [x] роли директора/менеджеров
+- [x] комментарии и audit log
+- [x] аналитика и Dashboard
+- [x] экспорт XLSX
+- [x] CI backend/frontend
+- [ ] Telegram-бот
+- [ ] интеграция с поставщиками
+- [ ] уведомления
 
 ## 📄 Лицензия
 
-MIT
+[MIT](LICENSE)

@@ -20,10 +20,10 @@ from app.db.enums import LeadSource, LeadStatus, UserRole
 from app.db.models import AuditLog, Lead, OrderItem, StatusHistory, User
 from app.db.models.comment import Comment
 
-ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "volgarec999@mail.ru")
-ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "admin123")
+ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@autocrm.local")
+ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "change-me-admin")
 MANAGER_EMAIL = os.getenv("SEED_MANAGER_EMAIL", "manager@autocrm.local")
-MANAGER_PASSWORD = os.getenv("SEED_MANAGER_PASSWORD", "manager123")
+MANAGER_PASSWORD = os.getenv("SEED_MANAGER_PASSWORD", "change-me-manager")
 UPDATE_PASSWORDS = os.getenv("SEED_UPDATE_PASSWORDS", "0") == "1"
 
 NAMES = [

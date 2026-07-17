@@ -16,23 +16,25 @@ venv/
 .env
 .env.*
 !.env.example
-!.env.docker.example
-!.env.stage3.example
+
+# Runtime state (created by the application)
+autocrm_user_profiles.json
+autocrm_settings.json
 
 # Local databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Frontend generated files
+# Frontend dependencies and build output
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
-# Archives
+# Temporary patches, archives and logs
+*.patch
 *.zip
-
-# Logs
+*.rar
 *.log
 
 # IDE and operating system
@@ -41,5 +43,7 @@ frontend/.vite/
 .DS_Store
 Thumbs.db
 
-# Accidental local files
+# Local backups
+_v*_backup_*/
+_portfolio_cleanup_backup_*/
 /uvicorn
