@@ -47,3 +47,5 @@ Thumbs.db
 _v*_backup_*/
 _portfolio_cleanup_backup_*/
 /uvicorn
+frontend/node_modules/ 
+node_modules/ 
