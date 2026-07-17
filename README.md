@@ -1,4 +1,4 @@
-# 🚗 AutoCRM — CRM для магазина автозапчастей
+# 🚗 AutoCRM — CRM-система для магазина автозапчастей
 
 [![CI](https://github.com/yatochkaa/autocrm/actions/workflows/ci.yml/badge.svg)](https://github.com/yatochkaa/autocrm/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
@@ -9,38 +9,46 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 
-CRM-система для магазина автозапчастей: заявки клиентов (источники —
-Telegram / сайт / вручную) ведутся менеджером по воронке продаж, по каждой
-заявке подбираются запчасти (оригиналы и аналоги), считаются **сумма и
-маржа**, а аналитика выводится на **дашборд**.
+AutoCRM — веб-приложение для управления заявками магазина автозапчастей: от первого обращения клиента до продажи. Система объединяет реестр заявок, канбан-воронку, подбор запчастей, аналитику и разграничение доступа для сотрудников.
+
+Заявки поступают из Telegram, с сайта или создаются менеджером вручную. Для каждой заявки можно подобрать оригинальные запчасти и аналоги, рассчитать сумму заказа и маржу, назначить ответственного менеджера и отследить историю изменений.
 
 **Воронка:** `Новая → В работе → Подбор → Счёт → Продажа / Отказ`
 
-🔗 **Live demo:** https://autocrm-demo.up.railway.app · **Swagger:** https://autocrm-demo.up.railway.app/docs
-
-> Демо-доступ: `manager@autocrm.local` / `manager123`
-
 ---
 
-## 📸 Скриншоты
+## 📸 Интерфейс
 
-<!-- TODO: добавить реальные скриншоты/GIF в docs/screenshots/ -->
+### Воронка продаж
 
-| Воронка (kanban) | Карточка заявки | Дашборд |
-|---|---|---|
-| ![Kanban](docs/screenshots/kanban.png) | ![Lead](docs/screenshots/lead.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+![Канбан-воронка AutoCRM](docs/screenshots/kanban-board.png)
+
+### Список заявок
+
+![Список заявок AutoCRM](docs/screenshots/requests-list.png)
+
+### Аналитика
+
+![Дашборд AutoCRM](docs/screenshots/dashboard-overview.png)
+
+### Перемещение заявки между этапами
+
+![Работа с канбаном AutoCRM](docs/screenshots/kanban-workflow.gif)
 
 ---
 
 ## ✨ Возможности
 
-- 🧭 Kanban-воронка заявок с drag-and-drop (@dnd-kit) и историей смены статусов
-- 🔧 Позиции подбора: OEM-номера, бренды, оригинал/аналог, цена и закупка
-- 💰 Авторасчёт: `line_total = price × qty`, `line_margin = (price − purchase_price) × qty`
-- 📊 Аналитика: продажи, источники, менеджеры, конверсия по этапам (Recharts)
-- 🔐 JWT-авторизация, роли admin/manager, приоритеты и причины отказа
-- 📝 Комментарии к заявкам и полный audit log действий
-- 🧪 CI: ruff + проверка миграций + pytest на каждый push
+- 📋 Реестр заявок с поиском, фильтрами, приоритетами и назначением менеджера
+- 🧭 Kanban-воронка с drag-and-drop (`@dnd-kit`) и историей смены статусов
+- 🔧 Подбор позиций: OEM-номера, бренды, оригиналы и аналоги, цена и закупка
+- 💰 Автоматический расчёт суммы и маржи по каждой позиции и всей заявке
+- 📊 Аналитика продаж, источников, менеджеров и конверсии по этапам (`Recharts`)
+- 🔐 JWT-авторизация и разграничение доступа для администратора и менеджера
+- 📝 Комментарии к заявкам и полный журнал действий
+- 📥 Экспорт данных в Excel
+- 🌗 Светлая и тёмная темы интерфейса
+- 🧪 CI: `ruff`, проверка миграций и `pytest` при каждом push
 
 ## 🛠 Стек
 
@@ -149,6 +157,7 @@ autocrm/
 ├── frontend/           # React + TypeScript + Vite
 ├── scripts/            # seed_portfolio.py и утилиты
 ├── tests/              # pytest
+├── docs/               # документация и скриншоты
 ├── docker-compose.yml  # db + api + frontend
 └── Dockerfile          # образ API
 ```
@@ -258,10 +267,6 @@ sequenceDiagram
 
 ---
 
-## 🌐 Деплой
-
-Проект разворачивается на [Railway](https://railway.app) (PostgreSQL + API + frontend).
-Пошаговая инструкция: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## 🗺 Roadmap
 
@@ -272,7 +277,7 @@ sequenceDiagram
 - [x] Комментарии и audit log
 - [x] CI (ruff + миграции + pytest)
 - [ ] Telegram-бот для автоматического приёма заявок
-- [ ] Экспорт отчётов в Excel/CSV
+- [x] Экспорт отчётов в Excel
 - [ ] Интеграция с поставщиками (проценка по API)
 - [ ] Уведомления менеджеру о новых заявках
 
