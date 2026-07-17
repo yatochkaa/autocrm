@@ -1,22 +1,49 @@
-# PartsPrice Hub — PostgreSQL для локального теста этапа 2.
-# Поднимает только базу; миграцию и проверку запускаем с хоста (из venv).
+# AutoCRM — полный стек: PostgreSQL + API + frontend.
+# Запуск: cp .env.example .env && docker compose up --build
 services:
   db:
     image: postgres:16-alpine
-    container_name: partsprice_db
+    container_name: autocrm_db
     environment:
-      POSTGRES_USER: partsprice
-      POSTGRES_PASSWORD: partsprice
-      POSTGRES_DB: partsprice
+      POSTGRES_USER: ${POSTGRES_USER:-autocrm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autocrm}
+      POSTGRES_DB: ${POSTGRES_DB:-autocrm}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U partsprice -d partsprice"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autocrm} -d ${POSTGRES_DB:-autocrm}"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  api:
+    build: .
+    container_name: autocrm_api
+    # Миграции накатываются на старте — чистый запуск без ручных шагов.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      # psycopg3 работает и в sync (alembic), и в async (приложение) режиме.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-autocrm}:${POSTGRES_PASSWORD:-autocrm}@db:5432/${POSTGRES_DB:-autocrm}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-secret-change-me}
+      DEBUG: ${DEBUG:-false}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: autocrm_frontend
+    environment:
+      # nginx проксирует /api/* на этот адрес (срезая префикс, как dev-proxy Vite)
+      API_UPSTREAM: http://api:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
 
 volumes:
   pgdata:
